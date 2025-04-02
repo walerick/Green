@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Interface{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: 60vh;
+        overflow-y: auto;
+    }
+    .user-message {
+        background-color: #e3f2fd;
+        border-radius: 1rem 1rem 0 1rem;
+    }
+    .bot-message {
+        background-color: #f5f5f5;
+        border-radius: 1rem 1rem 1rem 0;
+    }
+    #file-input {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-blue-600 text-white p-4">
+            <h2 class="text-xl font-bold flex items-center">
+                <i class="fas fa-robot mr-2"></i> Green Finance AI
+            </h2>
+        </div>
+
+        <div class="p-4 chat-container" id="chatbox">
+            <div class="text-center text-gray-500 py-4">
+                Start chatting with the AI or upload an Excel file for analysis...
+            </div>
+        </div>
+
+        <div class="p-4 border-t">
+            <div class="flex items-center mb-4">
+                <textarea id="user-input" rows="2"
+                    class="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Type your message here..."></textarea>
+                <button id="send-btn"
+                    class="ml-2 bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center">
+                <label for="file-input"
+                    class="cursor-pointer bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mr-2">
+                    <i class="fas fa-file-excel mr-2"></i> Upload Excel
+                </label>
+                <input type="file" id="file-input" accept=".xls,.xlsx">
+                <button id="upload-btn"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                    <i class="fas fa-upload mr-2"></i> Analyze
+                </button>
+                <span id="file-name" class="ml-2 text-gray-600 truncate max-w-xs"></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatbox = document.getElementById('chatbox');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileName = document.getElementById('file-name');
+
+        // Handle Enter key press
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Send message button click
+        sendBtn.addEventListener('click', sendMessage);
+
+        // File input change
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = this.files[0].name;
+            } else {
+                fileName.textContent = '';
+            }
+        });
+
+        // Upload button click
+        uploadBtn.addEventListener('click', uploadFile);
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            // Add user message to chat
+            addMessage('user', message);
+            userInput.value = '';
+
+            // Send to server
+            fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    addMessage('bot', `Error: ${data.error}`);
+                } else {
+                    addMessage('bot', data.response);
+                }
+            })
+            .catch(error => {
+                addMessage('bot', `Error: ${error.message}`);
+            });
+        }
+
+        function uploadFile() {
+            const file = fileInput.files[0];
+            if (!file) {
+                addMessage('bot', 'Please select an Excel file first.');
+                return;
+            }
+
+            addMessage('user', `Uploading file: ${file.name}`);
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    addMessage('bot', `Error: ${data.error}`);
+                } else {
+                    addMessage('bot', data.response);
+                }
+                fileInput.value = '';
+                fileName.textContent = '';
+            })
+            .catch(error => {
+                addMessage('bot', `Error: ${error.message}`);
+            });
+        }
+
+        function addMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `mb-3 p-4 ${sender}-message`;
+            messageDiv.innerHTML = `
+                <div class="font-bold mb-1">${sender === 'user' ? 'You' : 'AI Bot'}</div>
+                <div>${text}</div>
+            `;
+            chatbox.appendChild(messageDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+    });
+</script>
+{% endblock %}

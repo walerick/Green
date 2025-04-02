@@ -1,0 +1,22 @@
+/* Custom styles */
+.chat-container {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.chat-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+    background: #black;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+    background-color: yellow;
+    border-radius: 4px;
+}
+
+textarea {
+    resize: none;
+}

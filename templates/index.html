@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="hero bg-blue-600 text-white rounded-lg shadow-lg p-12 mb-12">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold mb-4">Your Green Finance Analysis</h1>
+            <p class="text-xl mb-8">Secure, intelligent conversations with Our AI analysis</p>
+            <a href="{{ url_for('login') }}"
+               class="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg hover:bg-blue-100 transition duration-300 text-lg font-semibold">
+                Login to Get Started
+            </a>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8 mb-12">
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
+            <div class="text-blue-500 mb-4">
+                <i class="fas fa-shield-alt text-4xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-3">Secure Login</h3>
+            <p class="text-gray-600">Protected user accounts with encrypted authentication.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
+            <div class="text-green-500 mb-4">
+                <i class="fas fa-comments text-4xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-3">AI Chat</h3>
+            <p class="text-gray-600">Green Finance conversations</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
+            <div class="text-purple-500 mb-4">
+                <i class="fas fa-file-excel text-4xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-3">Excel Analysis</h3>
+            <p class="text-gray-600">AI-powered insights from your Excel data.</p>
+        </div>
+    </div>
+
+    <div class="bg-white p-8 rounded-lg shadow-md text-center">
+        <h2 class="text-2xl font-bold mb-4">Ready to get started?</h2>
+        <p class="text-gray-600 mb-6">Login to access all features of our AI ChatBot platform.</p>
+        <a href="{{ url_for('login') }}"
+           class="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition duration-300">
+            Login Now
+        </a>
+    </div>
+</div>
+{% endblock %}
