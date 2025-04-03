@@ -26,7 +26,6 @@ load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
 
 # OpenRouter API Configuration
-  # Replace with your OpenRouter API key
 API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 
