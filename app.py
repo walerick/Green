@@ -23,9 +23,10 @@ users = {
 ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
 
 load_dotenv()
-API_KEY = os.getenv("OPENAI_API_KEY")
-
+# API_KEY = os.getenv("OPENAI_API_KEY")
+API_KEY = os.getenv("API_KEY")
 # OpenRouter API Configuration
+
 API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 
@@ -152,3 +153,6 @@ def upload():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
