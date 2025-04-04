@@ -91,7 +91,7 @@ def chat():
     data = {
         "model": "deepseek/deepseek-chat:free",
         "messages": [
-            {"role": "system", "content": "You can only talk about climate change. If I ask you anything asides that, tell me 'I'm not programmed for that'."},
+            {"role": "system", "content": "chat with me."},
             {"role": "user", "content": user_input}
         ]
     }
