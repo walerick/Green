@@ -69,7 +69,7 @@
                 <span id="file-name" class="ml-2 text-gray-600 truncate max-w-xs"></span>
                 <label for="file-input"
                     class="cursor-pointer bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mr-2">
-                    <i class="fas fa-file-excel mr-2"></i> Select File
+                    <i class="fas fa-file-excel mr-2"></i> Upload File
                 </label>
                 <input type="file" id="file-input" accept=".xls,.xlsx">
                 <button id="analyze-btn"
@@ -101,7 +101,7 @@
     analyzeBtn.addEventListener('click', function() {
         const file = fileInput.files[0];
         if (!file) {
-            addMessage('bot', 'Please select an Excel file first.');
+            addMessage('bot', 'Please Upload Excel file.');
             return;
         }
 
@@ -229,7 +229,7 @@
         const messageDiv = document.createElement('div');
         messageDiv.className = `mb-3 p-4 ${sender}-message`;
         messageDiv.innerHTML = `
-            <div class="font-bold mb-1">${sender === 'user' ? 'You' : 'AI Bot'}</div>
+            <div class="font-bold mb-1">${sender === 'user' ? 'You' : '!'}</div>
             <div>${text}</div>
         `;
         analysisbox.appendChild(messageDiv);
