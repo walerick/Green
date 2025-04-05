@@ -46,6 +46,9 @@
                     class="ml-2 bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition">
                     <i class="fas fa-paper-plane"></i>
                 </button>
+                <button id="clear-btn" class="ml-2 bg-red-600 text-white p-3 rounded-lg hover:bg-red-700 transition">
+                    <i class="fas fa-trash-alt"></i> Clear History
+                </button>
             </div>
 
             <div class="flex items-center">
@@ -167,5 +170,24 @@
             chatbox.scrollTop = chatbox.scrollHeight;
         }
     });
+
+    // Add this to your extra_js block
+const clearBtn = document.getElementById('clear-btn');
+
+clearBtn.addEventListener('click', function() {
+    fetch('/clear-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            chatbox.innerHTML = '<div class="text-center text-gray-500 py-4">Start chatting with the AI or upload an Excel file for analysis...</div>';
+        }
+    })
+    .catch(error => {
+        addMessage('bot', `Error clearing history: ${error.message}`);
+    });
+});
 </script>
 {% endblock %}
