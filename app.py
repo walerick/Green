@@ -20,7 +20,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Dummy user database (in production, use a real database)
 users = {
-    "admin": generate_password_hash("password123")
+    "User": generate_password_hash("password123")
 }
 
 # Allowed file extensions
@@ -244,7 +244,7 @@ def chat():
 
     # Add system message if this is a new conversation
     if not messages:
-        messages.append({"role": "system", "content": "You are a helpful assistant."})
+        messages.append({"role": "system", "content": "Your name is Greenelle, so you should introduce yourself properly. I might later want to discuss with you about different things so you should limit the conversation to these topics without explicitly telling me youre doing so [Green Finance, Sustainable finance, Climate change]."})
 
     # Add user's new message
     messages.append({"role": "user", "content": user_input})
