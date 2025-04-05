@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}File Analysis{% endblock %}
+
+
+
+{% block extra_css %}
+<style>
+    .analysis-container {
+        height: 60vh;
+        overflow-y: auto;
+    }
+    .user-message {
+        background-color: #e3f2fd;
+        border-radius: 1rem 1rem 0 1rem;
+    }
+    .bot-message {
+        background-color: #f5f5f5;
+        border-radius: 1rem 1rem 1rem 0;
+    }
+    #file-input {
+        display: none;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+        background-color: #f9fafb;
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+    }
+    tr:nth-child(even) {
+        background-color: #f9fafb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-green-600 text-white p-4">
+            <h2 class="text-xl font-bold flex items-center">
+                <i class="fas fa-file-excel mr-2"></i> File Analysis
+            </h2>
+        </div>
+
+        <div class="p-4 analysis-container" id="analysisbox">
+            <div class="text-center text-gray-500 py-4">
+                Upload an Excel file for analysis...
+            </div>
+        </div>
+
+        <div class="p-4 border-t">
+            <div class="flex items-center">
+                <label for="file-input"
+                    class="cursor-pointer bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition mr-2">
+                    <i class="fas fa-file-excel mr-2"></i> Select File
+                </label>
+                <input type="file" id="file-input" accept=".xls,.xlsx">
+                <button id="analyze-btn"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-chart-bar mr-2"></i> Analyze
+                </button>
+                <span id="file-name" class="ml-2 text-gray-600 truncate max-w-xs"></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+   document.addEventListener('DOMContentLoaded', function() {
+    const analysisbox = document.getElementById('analysisbox');
+    const fileInput = document.getElementById('file-input');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const fileName = document.getElementById('file-name');
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'text-center py-4 text-gray-500';
+    loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analyzing file...';
+
+    fileInput.addEventListener('change', function() {
+        fileName.textContent = this.files.length > 0 ? this.files[0].name : '';
+    });
+
+    analyzeBtn.addEventListener('click', function() {
+        const file = fileInput.files[0];
+        if (!file) {
+            addMessage('bot', 'Please select an Excel file first.');
+            return;
+        }
+
+        addMessage('user', `Uploading file: ${file.name}`);
+        analysisbox.appendChild(loadingIndicator);
+        analyzeBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/analyze-file', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            // Check if response contains a markdown table
+            if (data.response.includes('| ID |') || data.response.includes('|ID|')) {
+                renderMarkdownTable(data.response);
+            } else {
+                // Fallback to regular message if no table found
+                addMessage('bot', data.response);
+            }
+        })
+        .catch(error => {
+            addMessage('bot', `Error: ${error.message}`);
+        })
+        .finally(() => {
+            fileInput.value = '';
+            fileName.textContent = '';
+            analyzeBtn.disabled = false;
+            if (analysisbox.contains(loadingIndicator)) {
+                analysisbox.removeChild(loadingIndicator);
+            }
+        });
+    });
+
+    function renderMarkdownTable(markdown) {
+        // Extract table rows from markdown
+        const rows = markdown.split('\n').filter(line => line.trim().startsWith('|') &&
+                                                     !line.trim().startsWith('|---') &&
+                                                     !line.trim().startsWith('| :'));
+
+        if (rows.length < 2) {
+            addMessage('bot', markdown); // Fallback if table parsing fails
+            return;
+        }
+
+        // Create table container
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'overflow-x-auto mt-4';
+
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'min-w-full divide-y divide-gray-200';
+
+        // Create table header from first row
+        const headers = rows[0].split('|').filter(cell => cell.trim() !== '');
+        const thead = document.createElement('thead');
+        thead.className = 'bg-gray-50';
+        const headerRow = document.createElement('tr');
+
+        headers.forEach(headerText => {
+            const th = document.createElement('th');
+            th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+            th.textContent = headerText.trim();
+            headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Create table body from remaining rows
+        const tbody = document.createElement('tbody');
+        tbody.className = 'bg-white divide-y divide-gray-200';
+
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].split('|').filter(cell => cell.trim() !== '');
+            if (cells.length !== headers.length) continue;
+
+            const row = document.createElement('tr');
+
+            cells.forEach(cellText => {
+                const td = document.createElement('td');
+                td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+
+                // Special styling for Green column
+                if (cellText.trim().toLowerCase().includes('yes') ||
+                    cellText.trim().toLowerCase().includes('green')) {
+                    td.className += ' text-green-600 font-semibold';
+                } else if (cellText.trim().toLowerCase().includes('no')) {
+                    td.className += ' text-red-600 font-semibold';
+                }
+
+                td.textContent = cellText.trim();
+                row.appendChild(td);
+            });
+
+            tbody.appendChild(row);
+        }
+
+        table.appendChild(tbody);
+        tableContainer.appendChild(table);
+
+        // Create message container
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'mb-3 p-4 bot-message';
+
+        const title = document.createElement('div');
+        title.className = 'font-bold mb-2';
+        title.textContent = 'Analysis Results';
+
+        messageDiv.appendChild(title);
+        messageDiv.appendChild(tableContainer);
+
+        analysisbox.appendChild(messageDiv);
+        analysisbox.scrollTop = analysisbox.scrollHeight;
+    }
+
+    function addMessage(sender, text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `mb-3 p-4 ${sender}-message`;
+        messageDiv.innerHTML = `
+            <div class="font-bold mb-1">${sender === 'user' ? 'You' : 'AI Bot'}</div>
+            <div>${text}</div>
+        `;
+        analysisbox.appendChild(messageDiv);
+        analysisbox.scrollTop = analysisbox.scrollHeight;
+    }
+});
+</script>
+{% endblock %}

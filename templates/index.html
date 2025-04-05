@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 
+{% block title %}Welcome to Greenelle{% endblock %}
+
 {% block content %}
 <div class="max-w-6xl mx-auto">
     <div class="hero bg-green-600 text-white rounded-lg shadow-lg p-12 mb-12">
         <div class="text-center">
             <h1 class="text-4xl font-bold mb-4">Chat with Greenelle</h1>
-            <p class="text-xl mb-8">An Ai powered chatbot to answer all your questions on Green Finance</p>
+            <p class="text-xl mb-8">An AI powered chatbot to answer all your questions on Green Finance</p>
             <a href="{{ url_for('login') }}"
                class="inline-block bg-white text-green-600 px-8 py-3 rounded-lg hover:bg-green-100 transition duration-300 text-lg font-semibold">
                 Login to Get Started
@@ -31,7 +33,7 @@
         </div>
 
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition">
-            <div class="text-purple-500 mb-4">
+            <div class="text-green-500 mb-4">
                 <i class="fas fa-file-excel text-4xl"></i>
             </div>
             <h3 class="text-xl font-semibold mb-3">Excel Analysis</h3>

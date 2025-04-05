@@ -12,9 +12,17 @@
 <body class="bg-gray-100">
 <nav class="bg-green-600 text-white p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
-            <a href="/" class="text-xl font-bold flex items-center">
-                <i class="fas fa-robot mr-2"></i> Greenelle
+<!--            <a href="/" class="text-xl font-bold flex items-center">-->
+<!--                <i class="fas fa-robot mr-2"></i>-->
+<!--                <img src="/static/images/Aplhaforce.png" height= 1px >-->
+<!--                Alphaforce-->
+<!--            </a>-->
+            <a href="/" class="text-xl font-bold flex items-center space-x-2">
+<!--                <i class="fas fa-robot text-2xl"></i>-->
+                 <img src="/static/images/Aplhaforce.png" class="h-6 w-6 object-contain" alt="Alphaforce logo" />
+                <span>Alphaforce</span>
             </a>
+
             <div class="space-x-4">
                 {% if 'username' in session %}
                     <a href="{{ url_for('dashboard') }}" class="hover:text-green-200 px-3 py-2 rounded transition">Dashboard</a>

@@ -1,10 +1,11 @@
+
 {% extends "base.html" %}
 
 {% block title %}Chat Interface{% endblock %}
 
 {% block extra_css %}
 <style>
-    .chat-container {
+    .analysis-container {
         height: 60vh;
         overflow-y: auto;
     }
@@ -19,6 +20,35 @@
     #file-input {
         display: none;
     }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    th {
+        background-color: #f8fafc;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.75rem;
+        color: #64748b;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        color: #334155;
+    }
+    tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+    tr:hover {
+        background-color: #f1f5f9;
+    }
 </style>
 {% endblock %}
 
@@ -27,18 +57,18 @@
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <div class="bg-green-600 text-white p-4">
             <h2 class="text-xl font-bold flex items-center">
-                <i class="fas fa-robot mr-2"></i> Greenelle
+                <i class="fas fa-robot mr-2"></i> Greenelle Chat
             </h2>
         </div>
 
         <div class="p-4 chat-container" id="chatbox">
             <div class="text-center text-gray-500 py-4">
-                Start chatting with the AI or upload an Excel file for analysis...
+                Start chatting with the AI...
             </div>
         </div>
 
         <div class="p-4 border-t">
-            <div class="flex items-center mb-4">
+            <div class="flex items-center">
                 <textarea id="user-input" rows="2"
                     class="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="Type your message here..."></textarea>
@@ -47,21 +77,8 @@
                     <i class="fas fa-paper-plane"></i>
                 </button>
                 <button id="clear-btn" class="ml-2 bg-red-600 text-white p-3 rounded-lg hover:bg-red-700 transition">
-                    <i class="fas fa-trash-alt"></i> Clear History
+                    <i class="fas fa-trash-alt"></i> Clear
                 </button>
-            </div>
-
-            <div class="flex items-center">
-                <label for="file-input"
-                    class="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition mr-2">
-                    <i class="fas fa-file-excel mr-2"></i> Upload Excel
-                </label>
-                <input type="file" id="file-input" accept=".xls,.xlsx">
-                <button id="upload-btn"
-                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                    <i class="fas fa-upload mr-2"></i> Analyze
-                </button>
-                <span id="file-name" class="ml-2 text-gray-600 truncate max-w-xs"></span>
             </div>
         </div>
     </div>
@@ -74,9 +91,7 @@
         const chatbox = document.getElementById('chatbox');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
-        const fileInput = document.getElementById('file-input');
-        const uploadBtn = document.getElementById('upload-btn');
-        const fileName = document.getElementById('file-name');
+        const clearBtn = document.getElementById('clear-btn');
 
         // Handle Enter key press
         userInput.addEventListener('keypress', function(e) {
@@ -89,17 +104,22 @@
         // Send message button click
         sendBtn.addEventListener('click', sendMessage);
 
-        // File input change
-        fileInput.addEventListener('change', function() {
-            if (this.files.length > 0) {
-                fileName.textContent = this.files[0].name;
-            } else {
-                fileName.textContent = '';
-            }
+        // Clear button click
+        clearBtn.addEventListener('click', function() {
+            fetch('/clear-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    chatbox.innerHTML = '<div class="text-center text-gray-500 py-4">Start chatting with the AI...</div>';
+                }
+            })
+            .catch(error => {
+                addMessage('bot', `Error clearing history: ${error.message}`);
+            });
         });
-
-        // Upload button click
-        uploadBtn.addEventListener('click', uploadFile);
 
         function sendMessage() {
             const message = userInput.value.trim();
@@ -128,37 +148,6 @@
             });
         }
 
-        function uploadFile() {
-            const file = fileInput.files[0];
-            if (!file) {
-                addMessage('bot', 'Please select an Excel file first.');
-                return;
-            }
-
-            addMessage('user', `Uploading file: ${file.name}`);
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    addMessage('bot', `Error: ${data.error}`);
-                } else {
-                    addMessage('bot', data.response);
-                }
-                fileInput.value = '';
-                fileName.textContent = '';
-            })
-            .catch(error => {
-                addMessage('bot', `Error: ${error.message}`);
-            });
-        }
-
         function addMessage(sender, text) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `mb-3 p-4 ${sender}-message`;
@@ -170,24 +159,5 @@
             chatbox.scrollTop = chatbox.scrollHeight;
         }
     });
-
-    // Add this to your extra_js block
-const clearBtn = document.getElementById('clear-btn');
-
-clearBtn.addEventListener('click', function() {
-    fetch('/clear-history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            chatbox.innerHTML = '<div class="text-center text-gray-500 py-4">Start chatting with the AI or upload an Excel file for analysis...</div>';
-        }
-    })
-    .catch(error => {
-        addMessage('bot', `Error clearing history: ${error.message}`);
-    });
-});
 </script>
 {% endblock %}
