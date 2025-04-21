@@ -49,6 +49,35 @@
     tr:hover {
         background-color: #f1f5f9;
     }
+        .prose {
+        max-width: 100%;
+        color: #374151;
+    }
+
+    .prose strong {
+        color: #111827;
+        font-weight: 600;
+    }
+
+    .prose ul {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .prose hr {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .user-message {
+        border-radius: 1rem 1rem 0 1rem;
+        margin-left: 20%;
+    }
+
+    .bot-message {
+        border-radius: 1rem 1rem 1rem 0;
+        margin-right: 20%;
+    }
 </style>
 {% endblock %}
 
@@ -151,13 +180,56 @@
 
         function addMessage(sender, text) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `mb-3 p-4 ${sender}-message`;
-            messageDiv.innerHTML = `
-                <div class="font-bold mb-1">${sender === 'user' ? 'You' : 'Greenelle'}</div>
-                <div>${text}</div>
-            `;
+            messageDiv.className = `mb-4 p-4 rounded-lg ${sender === 'user' ? 'bg-blue-100 user-message' : 'bg-gray-100 bot-message'}`;
+
+            // Create sender label
+            const senderLabel = document.createElement('div');
+            senderLabel.className = 'font-bold text-sm mb-1 text-gray-700';
+            senderLabel.textContent = sender === 'user' ? 'You' : 'Greenelle';
+
+            // Create message content (will handle markdown)
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'prose max-w-none'; // Tailwind prose class for nice formatting
+
+            // Convert markdown to HTML
+            const formattedText = formatMessage(text);
+            contentDiv.innerHTML = formattedText;
+
+            // Append elements
+            messageDiv.appendChild(senderLabel);
+            messageDiv.appendChild(contentDiv);
+
             chatbox.appendChild(messageDiv);
             chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function formatMessage(text) {
+            // Convert markdown to HTML
+            let html = text;
+
+            // Bold text (**text**)
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Italic text (*text*)
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // Headers (### Header)
+            html = html.replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold mt-4 mb-2">$1</h3>');
+
+            // Lists (- item)
+            html = html.replace(/^- (.*$)/gm, '<li>$1</li>');
+            html = html.replace(/<li>.*<\/li>/g, '<ul class="list-disc pl-5 my-2">$&</ul>');
+
+            // Paragraphs (double newline)
+            html = html.replace(/\n\n/g, '</p><p class="my-2">');
+
+            // Single newlines (convert to <br>)
+            html = html.replace(/\n/g, '<br>');
+
+            // Horizontal rules (---)
+            html = html.replace(/---/g, '<hr class="my-4 border-gray-300">');
+
+            return `<p class="my-2">${html}</p>`;
         }
     });
 </script>

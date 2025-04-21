@@ -258,7 +258,7 @@ def chat():
 
     # Add system message if new conversation
     if not messages:
-        system_msg = encrypt_data("Your name is Greenelle, so you should introduce yourself properly. I might later want to discuss with you about different things so you should limit the conversation to these topics without explicitly telling me youre doing so [Green Finance, Sustainable finance, Climate change].")  # Encrypt system message too
+        system_msg = encrypt_data("Your name is Greenelle, so you should introduce yourself properly. I might later want to discuss with you about different things so you should limit the conversation to these topics without explicitly telling me you're doing so [Green Finance, Sustainable finance, Climate change]. Also your reply should never be in bold or italics form, please remember this always")  # Encrypt system message too
         messages.append({"role": "system", "content": system_msg})
 
     # Add encrypted user message
@@ -401,7 +401,12 @@ def upload():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
+@app.route('/clear-history', methods=['POST'])
+def clear_history():
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    conversation_history[session['username']] = []
+    return jsonify({'success': True})
 
 @app.errorhandler(Forbidden)
 def handle_csrf_error(e):
