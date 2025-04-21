@@ -5,13 +5,24 @@ import os
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-# Add this at the top of your app.py
 from collections import defaultdict
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.exceptions import Forbidden
+from cryptography.fernet import Fernet
+import base64
+
 
 # Dictionary to store conversation history for each user
 conversation_history = defaultdict(list)
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+# app.secret_key = 'your_secret_key_here'
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
+app.config.update(
+    WTF_CSRF_TIME_LIMIT=3600,  # 1 hour token expiration
+    WTF_CSRF_SSL_STRICT=False  # Only send CSRF cookie over HTTPS
+)
 
 # Configure Upload Folder
 UPLOAD_FOLDER = 'uploads'
@@ -30,6 +41,33 @@ load_dotenv()
 # API_KEY = os.getenv("OPENAI_API_KEY")
 API_KEY = os.getenv("API_KEY")
 # OpenRouter API Configuration
+
+
+# Initialize encryption
+def initialize_encryption():
+    # Generate or load encryption key
+    encryption_key = os.environ.get('ENCRYPTION_KEY')
+    return Fernet(encryption_key.encode())
+
+
+cipher_suite = initialize_encryption()
+
+
+# Encryption functions
+def encrypt_data(data: str) -> str:
+    """Encrypt sensitive data before storage/transmission"""
+    if not data:
+        return data
+    encrypted = cipher_suite.encrypt(data.encode())
+    return base64.b64encode(encrypted).decode()  # For safe storage
+
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Decrypt data when needed"""
+    if not encrypted_data:
+        return encrypted_data
+    decoded = base64.b64decode(encrypted_data.encode())
+    return cipher_suite.decrypt(decoded).decode()
 
 API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
@@ -91,6 +129,8 @@ def file_analysis():
 
 @app.route('/analyze-file', methods=['POST'])
 def analyze_file():
+    if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        csrf.protect()
     if 'username' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
@@ -197,50 +237,41 @@ def classify_as_green(record):
 
     return "Not Green"
 
-# @app.route('/chat', methods=['POST'])
-# def chat():
-#     user_input = request.json.get('message')
-#
-#     headers = {
-#         'Authorization': f'Bearer {API_KEY}',
-#         'Content-Type': 'application/json'
-#     }
-#
-#     data = {
-#         "model": "deepseek/deepseek-chat:free",
-#         "messages": [
-#             {"role": "system", "content": "chat with me."},
-#             {"role": "user", "content": user_input}
-#         ]
-#     }
-#
-#     response = requests.post(API_URL, json=data, headers=headers)
-#
-#     if response.status_code == 200:
-#         chatbot_reply = response.json()['choices'][0]['message']['content']
-#         return jsonify({'response': chatbot_reply})
-#     else:
-#         return jsonify({'error': 'Failed to fetch data from API'}), 500
 
 
-# Then modify your chat route:
+
 @app.route('/chat', methods=['POST'])
 def chat():
     if 'username' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
 
     user_input = request.json.get('message')
+    if not user_input:
+        return jsonify({'error': 'No message provided'}), 400
+
+    # Encrypt the user input before storing
+    encrypted_input = encrypt_data(user_input)
     username = session['username']
 
-    # Get the user's conversation history
+    # Get conversation history (with encrypted messages)
     messages = conversation_history.get(username, [])
 
-    # Add system message if this is a new conversation
+    # Add system message if new conversation
     if not messages:
-        messages.append({"role": "system", "content": "Your name is Greenelle, so you should introduce yourself properly. I might later want to discuss with you about different things so you should limit the conversation to these topics without explicitly telling me youre doing so [Green Finance, Sustainable finance, Climate change]."})
+        system_msg = encrypt_data("Your name is Greenelle, so you should introduce yourself properly. I might later want to discuss with you about different things so you should limit the conversation to these topics without explicitly telling me youre doing so [Green Finance, Sustainable finance, Climate change].")  # Encrypt system message too
+        messages.append({"role": "system", "content": system_msg})
 
-    # Add user's new message
-    messages.append({"role": "user", "content": user_input})
+    # Add encrypted user message
+    messages.append({"role": "user", "content": encrypted_input})
+
+    # Prepare messages for API (decrypting only what's needed)
+    api_messages = []
+    for msg in messages:
+        decrypted_content = decrypt_data(msg['content'])
+        api_messages.append({
+            "role": msg['role'],
+            "content": decrypted_content
+        })
 
     headers = {
         'Authorization': f'Bearer {API_KEY}',
@@ -249,67 +280,30 @@ def chat():
 
     data = {
         "model": "deepseek/deepseek-chat:free",
-        "messages": messages
+        "messages": api_messages
     }
 
-    response = requests.post(API_URL, json=data, headers=headers)
+    try:
+        response = requests.post(API_URL, json=data, headers=headers)
+        if response.status_code == 200:
+            ai_response = response.json()['choices'][0]['message']['content']
 
-    if response.status_code == 200:
-        chatbot_reply = response.json()['choices'][0]['message']['content']
+            # Encrypt AI response before storing
+            encrypted_response = encrypt_data(ai_response)
+            messages.append({"role": "assistant", "content": encrypted_response})
+            conversation_history[username] = messages
 
-        # Add assistant's reply to the conversation history
-        messages.append({"role": "assistant", "content": chatbot_reply})
-        conversation_history[username] = messages
-
-        return jsonify({'response': chatbot_reply})
-    else:
-        return jsonify({'error': 'Failed to fetch data from API'}), 500
-
-
-# @app.route('/upload', methods=['POST'])
-# def upload():
-#     if 'file' not in request.files:
-#         return jsonify({'error': 'No file uploaded'}), 400
-#
-#     file = request.files['file']
-#
-#     if file.filename == '':
-#         return jsonify({'error': 'No selected file'}), 400
-#
-#     if not allowed_file(file.filename):
-#         return jsonify({'error': 'Invalid file type. Only Excel files are allowed.'}), 400
-#
-#     filename = secure_filename(file.filename)
-#     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-#     file.save(file_path)
-#
-#     try:
-#         df = pd.read_excel(file_path)
-#         excel_data = df.to_json(orient='records')
-#
-#         headers = {
-#             'Authorization': f'Bearer {API_KEY}',
-#             'Content-Type': 'application/json'
-#         }
-#
-#         data = {
-#             "model": "deepseek/deepseek-chat:free",
-#             "messages": [
-#                 {"role": "system", "content": "Analyze this Excel data and provide a concise summary."},
-#                 {"role": "user", "content": excel_data}
-#             ]
-#         }
-#
-#         response = requests.post(API_URL, json=data, headers=headers)
-#
-#         if response.status_code == 200:
-#             ai_response = response.json()['choices'][0]['message']['content']
-#             return jsonify({'response': ai_response})
-#         else:
-#             return jsonify({'error': 'Failed to analyze Excel file'}), 500
-#
-#     except Exception as e:
-#         return jsonify({'error': f'Error processing Excel file: {str(e)}'}), 500
+            return jsonify({'response': ai_response})
+        else:
+            return jsonify({
+                'error': 'Failed to fetch data from API',
+                'details': response.text
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'error': 'Error processing chat request',
+            'details': str(e)
+        }), 500
 
 
 @app.route('/upload', methods=['POST'])
@@ -409,4 +403,9 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-
+@app.errorhandler(Forbidden)
+def handle_csrf_error(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'CSRF token missing or invalid'}), 403
+    flash('Session expired. Please try again.', 'error')
+    return redirect(url_for('login'))

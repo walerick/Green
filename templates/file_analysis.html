@@ -94,6 +94,8 @@
     loadingIndicator.className = 'text-center py-4 text-gray-500';
     loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analyzing file...';
 
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     fileInput.addEventListener('change', function() {
         fileName.textContent = this.files.length > 0 ? this.files[0].name : '';
     });
@@ -114,6 +116,9 @@
 
         fetch('/analyze-file', {
             method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
             body: formData
         })
         .then(response => response.json())
